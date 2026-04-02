@@ -41,7 +41,7 @@ export default function App() {
   useEffect(() => { restoreSession() }, [restoreSession])
 
   return (
-    <BrowserRouter basename="/campvote">
+    <BrowserRouter>
       <Routes>
         <Route path="/" element={<RootRedirect />} />
         <Route path="/login"       element={<Login />} />
