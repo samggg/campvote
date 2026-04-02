@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Users, BarChart2, Download, LogOut, ToggleLeft, ToggleRight, Flame } from 'lucide-react'
+import { Users, BarChart2, Download, LogOut, ToggleLeft, ToggleRight, Flame, Database} from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { db } from '../../db/database'
 import type { Category } from '../../types'
@@ -44,7 +44,8 @@ export default function Dashboard() {
     { icon: Users,      label: 'Participantes', path: '/admin/participantes' },
     { icon: BarChart2,  label: 'Resultados',    path: '/admin/resultados' },
     { icon: Download,   label: 'Exportar',       path: '/admin/exportar' },
-    { icon: Settings,   label: 'Configurações',  path: '/admin/setup' }
+    { icon: Settings,   label: 'Configurações',  path: '/admin/setup' },
+    { icon: Database,   label: 'Banco de Dados',  path: '/debug' }
   ]
 
   return (

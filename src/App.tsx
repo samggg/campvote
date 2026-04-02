@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
 import Setup from './pages/admin/Setup'
+import Debug from './pages/Debug'
 
 
 // Páginas
@@ -45,6 +46,8 @@ export default function App() {
         <Route path="/" element={<RootRedirect />} />
         <Route path="/login"       element={<Login />} />
         <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/setup" element={<Setup />} />
+        <Route path="/debug" element={<Debug />} />
         <Route path="/categorias" element={<RequireAuth><Categories /></RequireAuth>} />
         <Route path="/votar/:categoryId" element={<RequireAuth><Vote /></RequireAuth>} />
         <Route path="/sucesso" element={<RequireAuth><Success /></RequireAuth>} />
@@ -52,7 +55,6 @@ export default function App() {
         <Route path="/admin/participantes" element={<RequireAdmin><Participants /></RequireAdmin>} />
         <Route path="/admin/resultados"    element={<RequireAdmin><Results /></RequireAdmin>} />
         <Route path="/admin/exportar"      element={<RequireAdmin><Export /></RequireAdmin>} />
-        <Route path="/admin/setup"   element={<RequireAdmin><Setup /></RequireAdmin>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

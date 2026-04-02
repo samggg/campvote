@@ -73,11 +73,26 @@ export default function AdminLogin() {
       {/* Error */}
       {error && (
         <div className="pop-in" style={{
+          display: 'flex', flexDirection: 'column', gap: 10,
           padding: '10px 16px', borderRadius: 10, marginBottom: 20,
           background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.3)',
           color: '#fca5a5', fontSize: '.9rem', textAlign: 'center'
         }}>
-          {error}
+          <div>{error}</div>
+          {error.includes('PIN de admin não configurado') && (
+            <button
+              onClick={() => navigate('/admin/setup')}
+              style={{
+                background: 'rgba(239,68,68,.2)', border: '1px solid rgba(239,68,68,.4)',
+                color: '#fca5a5', borderRadius: 6, padding: '6px 10px',
+                fontSize: '.85rem', cursor: 'pointer', transition: 'background .2s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,.3)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(239,68,68,.2)')}
+            >
+              Ir para Setup →
+            </button>
+          )}
         </div>
       )}
 

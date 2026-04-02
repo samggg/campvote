@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Check, User as UserIcon } from 'lucide-react'
+import { ArrowLeft, Check} from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { db } from '../db/database'
 import { voteService } from '../services/VoteService'

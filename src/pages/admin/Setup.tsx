@@ -260,7 +260,7 @@ export default function Setup() {
 
       {/* Nav */}
       <nav className="nav">
-        <button onClick={() => navigate('/admin/dashboard')} style={{
+        <button onClick={() => navigate('/admin/login')} style={{
           background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)',
           display: 'flex', alignItems: 'center', gap: 6,
         }}>

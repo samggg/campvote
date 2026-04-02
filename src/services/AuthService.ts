@@ -77,6 +77,19 @@ export class AuthService {
   async setAdminPin(pin: string): Promise<void> {
     const hash = await sha256(pin)
     localStorage.setItem(ADMIN_PIN_HASH_KEY, hash)
+
+    // Garante que o usuário admin existe no banco
+    const existingAdmin = await db.users.filter(u => u.isAdmin).first()
+    if (!existingAdmin) {
+      const now = new Date().toISOString()
+      await db.users.add({
+        id: crypto.randomUUID(),
+        name: 'Admin',
+        birthDate: '1970-01-01',
+        isAdmin: true,
+        createdAt: now,
+      })
+    }
   }
 
   getSession(): User | null {
