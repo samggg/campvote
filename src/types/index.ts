@@ -53,6 +53,14 @@ export interface AuditLog {
   createdAt: string
 }
 
+export interface Settings {
+  id: string
+  key: string
+  value: string
+  createdAt: string
+  updatedAt: string
+}
+
 // ─── Enums e tipos auxiliares ────────────────────────────────────────────────
 
 export type AuditAction =

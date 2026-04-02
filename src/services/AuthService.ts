@@ -2,7 +2,7 @@ import { db } from '../db/database'
 import { sha256 } from '../utils/hash'
 import type { User } from '../types'
 
-const ADMIN_PIN_HASH_KEY = 'campvote_admin_pin_hash'
+const ADMIN_PIN_KEY = 'admin_pin_hash'
 const SESSION_KEY = 'campvote_session'
 
 // Normaliza nome: minúsculas, sem espaços duplos, sem acentos
@@ -51,11 +51,11 @@ export class AuthService {
 
   /** Login do admin com PIN numérico */
   async loginAdmin(pin: string): Promise<User> {
-    const storedHash = localStorage.getItem(ADMIN_PIN_HASH_KEY)
-    if (!storedHash) throw new Error('PIN de admin não configurado. Acesse o Setup primeiro.')
+    const setting = await db.settings.where('key').equals(ADMIN_PIN_KEY).first()
+    if (!setting) throw new Error('PIN de admin não configurado. Acesse o Setup primeiro.')
 
     const inputHash = await sha256(pin)
-    if (inputHash !== storedHash) throw new Error('PIN incorreto.')
+    if (inputHash !== setting.value) throw new Error('PIN incorreto.')
 
     const admin = await db.users.filter(u => u.isAdmin).first()
     if (!admin) throw new Error('Usuário admin não encontrado.')
@@ -76,12 +76,42 @@ export class AuthService {
   /** Configura o PIN do admin */
   async setAdminPin(pin: string): Promise<void> {
     const hash = await sha256(pin)
-    localStorage.setItem(ADMIN_PIN_HASH_KEY, hash)
+    const now = new Date().toISOString()
+
+    // Check if migrating from localStorage
+    const existingSetting = await db.settings.where('key').equals(ADMIN_PIN_KEY).first()
+    if (!existingSetting) {
+      const oldHash = localStorage.getItem('campvote_admin_pin_hash')
+      if (oldHash) {
+        // Migrate
+        await db.settings.add({
+          id: crypto.randomUUID(),
+          key: ADMIN_PIN_KEY,
+          value: oldHash,
+          createdAt: now,
+          updatedAt: now,
+        })
+        localStorage.removeItem('campvote_admin_pin_hash')
+        return // Already set
+      }
+    }
+
+    // Upsert the setting
+    if (existingSetting) {
+      await db.settings.update(existingSetting.id, { value: hash, updatedAt: now })
+    } else {
+      await db.settings.add({
+        id: crypto.randomUUID(),
+        key: ADMIN_PIN_KEY,
+        value: hash,
+        createdAt: now,
+        updatedAt: now,
+      })
+    }
 
     // Garante que o usuário admin existe no banco
     const existingAdmin = await db.users.filter(u => u.isAdmin).first()
     if (!existingAdmin) {
-      const now = new Date().toISOString()
       await db.users.add({
         id: crypto.randomUUID(),
         name: 'Admin',

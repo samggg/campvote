@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { ArrowLeft, RefreshCw, Trash2 } from 'lucide-react'
 import { db } from '../db/database'
 
-type TableName = 'users' | 'categories' | 'votes' | 'devices' | 'auditLog' | 'categoryEligibility'
+type TableName = 'users' | 'categories' | 'votes' | 'devices' | 'auditLog' | 'categoryEligibility' | 'settings'
 
 export default function Debug() {
   const [selectedTable, setSelectedTable] = useState<TableName>('users')
@@ -16,6 +16,7 @@ export default function Debug() {
     { name: 'categoryEligibility', label: 'Elegibilidade' },
     { name: 'devices', label: 'Dispositivos' },
     { name: 'auditLog', label: 'Auditoria' },
+    { name: 'settings', label: 'Configurações' },
   ]
 
   const loadTable = async (table: TableName) => {
@@ -40,6 +41,9 @@ export default function Debug() {
           break
         case 'categoryEligibility':
           result = await db.categoryEligibility.toArray()
+          break
+        case 'settings':
+          result = await db.settings.toArray()
           break
       }
       setData(result)
@@ -67,7 +71,8 @@ export default function Debug() {
       await db.devices.clear()
       await db.auditLog.clear()
       await db.categoryEligibility.clear()
-      localStorage.removeItem('campvote_admin_pin_hash')
+      await db.settings.clear()
+      localStorage.removeItem('campvote_admin_pin_hash') // fallback
       alert('Banco de dados e PIN admin foram limpos!')
       setData([])
     } catch (e) {
