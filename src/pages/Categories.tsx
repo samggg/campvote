@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronRight, LogOut, CheckCircle2, Lock, Flame } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
-import { db } from '../db/database'
+import { apiService } from '../services/ApiService'
 import { voteService } from '../services/VoteService'
 import type { Category } from '../types'
 
@@ -24,8 +24,7 @@ export default function Categories() {
   const loadCategories = async () => {
     if (!user) return
 
-    // Busca TODAS e filtra em JS — evita problema de boolean vs 0/1 no IndexedDB
-    const allCats = await db.categories.toArray()
+    const allCats = await apiService.getCategories() as Category[]
     const activeCats = allCats.filter(c => c.isActive)
 
     const items: CategoryItem[] = await Promise.all(

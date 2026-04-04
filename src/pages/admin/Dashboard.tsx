@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Users, BarChart2, Download, LogOut, ToggleLeft, ToggleRight, Flame, Database} from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
-import { db } from '../../db/database'
+import { apiService } from '../../services/ApiService'
 import type { Category } from '../../types'
 import { Settings } from 'lucide-react'
 
@@ -16,26 +16,14 @@ export default function Dashboard() {
   useEffect(() => { loadData() }, [])
 
   const loadData = async () => {
-    const [users, votes, cats] = await Promise.all([
-      db.users.filter(u => !u.isAdmin).count(),
-      db.votes.count(),
-      db.categories.toArray(),
-    ])
-    const pending = users - (await db.votes
-      .orderBy('voterId').uniqueKeys()).length
-    setStats({ users, totalVotes: votes, pending: Math.max(0, pending) })
-    setCategories(cats)
+    const data = await apiService.getDashboardStats() as { stats: { users: number, totalVotes: number, pending: number }, categories: Category[] }
+    setStats(data.stats)
+    setCategories(data.categories)
   }
 
   const toggleVoting = async (cat: Category) => {
     setToggling(cat.id)
-    await db.categories.update(cat.id, { votingOpen: !cat.votingOpen })
-    await db.auditLog.add({
-      id: crypto.randomUUID(),
-      action: cat.votingOpen ? 'voting_closed' : 'voting_opened',
-      payloadHash: cat.id,
-      createdAt: new Date().toISOString(),
-    })
+    await apiService.toggleVoting(cat.id)
     await loadData()
     setToggling(null)
   }

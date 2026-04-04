@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Check} from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
-import { db } from '../db/database'
+import { apiService } from '../services/ApiService'
 import { voteService } from '../services/VoteService'
 import type { Category, User } from '../types'
 
@@ -31,21 +31,12 @@ export default function Vote() {
     const already = await voteService.hasVoted(user.id, categoryId)
     if (already) { navigate('/categorias', { replace: true }); return }
 
-    const cat = await db.categories.get(categoryId)
-    if (!cat || !cat.votingOpen) { navigate('/categorias', { replace: true }); return }
-    setCategory(cat)
+    const data = await apiService.getCategoryWithCandidates(categoryId) as { category: Category, candidates: User[] }
+    if (!data.category || !data.category.votingOpen) { navigate('/categorias', { replace: true }); return }
+    setCategory(data.category)
 
     // Carrega elegíveis (excluindo o próprio usuário)
-    const eligibilities = await db.categoryEligibility
-      .where({ categoryId }).toArray()
-
-    const users = await Promise.all(
-      eligibilities
-        .filter(e => e.userId !== user.id)
-        .map(e => db.users.get(e.userId))
-    )
-
-    setCandidates(users.filter(Boolean) as User[])
+    setCandidates(data.candidates.filter((c: User) => c.id !== user.id))
     setLoading(false)
   }
 

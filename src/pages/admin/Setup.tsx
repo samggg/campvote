@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Upload, Plus, Trash2, CheckCircle2, AlertCircle, Download, RefreshCw, ShieldCheck, Eye, EyeOff } from 'lucide-react'
-import { db } from '../../db/database'
+import { apiService } from '../../services/ApiService'
 import { authService } from '../../services/AuthService'
 import type { Category, User } from '../../types'
 
@@ -10,8 +10,6 @@ interface ParsedParticipant { name: string; birthDate: string; valid: boolean; e
 type Tab = 'participants' | 'categories' | 'pin' | 'danger'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-const uid = () => crypto.randomUUID()
-
 function parseCSV(text: string): ParsedParticipant[] {
   const lines = text.trim().split('\n').filter(l => l.trim())
   const usedCodes = new Set<string>()
@@ -82,10 +80,12 @@ export default function Setup() {
   }
 
   const loadData = async () => {
-    const [users, cats] = await Promise.all([
-      db.users.filter(u => !u.isAdmin).toArray(),
-      db.categories.toArray(),
+    const [usersPromise, catsPromise] = await Promise.all([
+      apiService.getUsers(),
+      apiService.getCategories(),
     ])
+    const users = usersPromise as User[]
+    const cats = catsPromise as Category[]
     setExistingUsers(users.sort((a, b) => a.name.localeCompare(b.name)))
     setCategories(cats)
   }
@@ -120,24 +120,7 @@ export default function Setup() {
         return
       }
 
-      const now = new Date().toISOString()
-      const cats = await db.categories.toArray()
-
-      await db.transaction('rw', db.users, db.categoryEligibility, async () => {
-        for (const p of valid) {
-          const userId = uid()
-          await db.users.add({
-            id: userId, name: p.name, birthDate: p.birthDate,
-            isAdmin: false, createdAt: now,
-          })
-          // Adiciona como elegível em todas as categorias existentes
-          for (const cat of cats) {
-            await db.categoryEligibility.add({
-              id: uid(), categoryId: cat.id, userId,
-            })
-          }
-        }
-      })
+      await apiService.importParticipants(valid.map(p => ({ name: p.name, birthDate: p.birthDate })))
 
       setImportDone(true)
       setParsed([])
@@ -151,10 +134,7 @@ export default function Setup() {
   }
 
   const removeUser = async (id: string) => {
-    await db.transaction('rw', db.users, db.categoryEligibility, async () => {
-      await db.categoryEligibility.where({ userId: id }).delete()
-      await db.users.delete(id)
-    })
+    await apiService.deleteParticipant(id)
     await loadData()
   }
 
@@ -163,20 +143,9 @@ export default function Setup() {
     if (!newCatName.trim()) return
     setAddingCat(true)
     try {
-      const catId = uid()
-      const now = new Date().toISOString()
-      await db.categories.add({
-        id: catId, name: newCatName.trim(),
-        description: newCatDesc.trim() || undefined,
-        isActive: true, votingOpen: false,
-        maxVotesPerUser: 1, createdAt: now,
-      })
-      // Adiciona todos os participantes existentes como elegíveis
-      const users = await db.users.filter(u => !u.isAdmin).toArray()
-      for (const user of users) {
-        await db.categoryEligibility.add({ id: uid(), categoryId: catId, userId: user.id })
-      }
-      setNewCatName(''); setNewCatDesc('')
+      await apiService.addCategory(newCatName.trim(), newCatDesc.trim())
+      setNewCatName('')
+      setNewCatDesc('')
       await loadData()
     } finally {
       setAddingCat(false)
@@ -185,11 +154,7 @@ export default function Setup() {
 
   const removeCategory = async (id: string) => {
     if (!confirm('Remover categoria? Votos associados serão excluídos.')) return
-    await db.transaction('rw', db.categories, db.categoryEligibility, db.votes, async () => {
-      await db.votes.where({ categoryId: id }).delete()
-      await db.categoryEligibility.where({ categoryId: id }).delete()
-      await db.categories.delete(id)
-    })
+    await apiService.deleteCategory(id)
     await loadData()
   }
 
@@ -198,11 +163,7 @@ export default function Setup() {
     if (!confirm('ATENÇÃO: isso apaga TODOS os votos, participantes e categorias. Tem certeza?')) return
     if (!confirm('Última chance — confirmar reset completo?')) return
     setResetting(true)
-    await db.votes.clear()
-    await db.categoryEligibility.clear()
-    await db.categories.clear()
-    await db.users.filter(u => !u.isAdmin).delete()
-    await db.auditLog.clear()
+    await apiService.resetAllData()
     setResetting(false)
     await loadData()
     setParsed([])
@@ -232,12 +193,6 @@ export default function Setup() {
     } finally {
       setPinSaving(false)
     }
-  }
-
-  const resetVotes = async () => {
-    if (!confirm('Apagar todos os votos registrados? Participantes e categorias serão mantidos.')) return
-    await db.votes.clear()
-    alert('Votos apagados.')
   }
 
   // ── Download template CSV ────────────────────────────────────────────────────
@@ -653,18 +608,6 @@ export default function Setup() {
             </div>
 
             <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div>
-                <h3 style={{ marginBottom: 4 }}>Apagar apenas os votos</h3>
-                <p style={{ color: 'var(--muted)', fontSize: '.82rem', marginBottom: 12 }}>
-                  Mantém participantes e categorias. Útil para fazer um teste antes do evento real.
-                </p>
-                <button className="btn btn-outline" onClick={resetVotes} style={{ borderColor: 'rgba(239,68,68,.4)', color: 'var(--red)' }}>
-                  Apagar votos
-                </button>
-              </div>
-
-              <div className="divider" />
-
               <div>
                 <h3 style={{ marginBottom: 4 }}>Reset completo</h3>
                 <p style={{ color: 'var(--muted)', fontSize: '.82rem', marginBottom: 12 }}>
